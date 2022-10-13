@@ -1,0 +1,43 @@
+* {
+    font-family: segoe, sans-serif;
+}
+
+#wrapper {
+    margin-top: 20px;
+    margin-left: 50px;
+    margin-right: 50px;
+}
+
+.fileDropBox {
+    line-height: 10em;
+    border: 1px dashed gray;
+    text-align: center;
+    color: gray;
+    border-radius: 7px;
+}
+
+#submissionCountDialog {
+    margin-top: 10px;
+    display: inline-block;
+}
+
+#zipDisplay {
+    display: inline-flex;
+}
+
+.submission {
+    margin-left: 10px;
+}
+
+li i {
+    padding-right: 10px;
+}
+
+#assignmentNameContainer {
+    margin-top: 10px;
+    margin-bottom: 20px;
+}
+
+#thirdStep {
+    margin-bottom: 1em;
+}
