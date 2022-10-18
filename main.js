@@ -61,6 +61,13 @@ function startZipFileRead(fileObject) {
 
             let zipFileName = fileObject.name;
             // german version
+            let regexResult = zipFileName.match(/.*(Übung|UE|Exercise)(\s|-)*([0-9]+)/);
+            if (regexResult != null && regexResult.length == 4) {
+                let extractedName = regexResult[1];
+                let extractedNumber = regexResult[3];
+                $('#assignmentName').val(extractedName + "_" + extractedNumber);
+            }
+            /*
             let regexResult = zipFileName.match(/.*(Übung\s[0-9]+)/);
             if (regexResult.length != 2) {
                 regexResult = zipFileName.match(/.*(Exercise\s[0-9]+)/);
@@ -70,6 +77,7 @@ function startZipFileRead(fileObject) {
                 extractedName = extractedName.replace(/\s/, "_");
                 $('#assignmentName').val(extractedName);
             }
+            */
 
             let zipFileDropBox = $('#zipFileDropBox');
             zipFileDropBox.addClass("d-none");
@@ -306,7 +314,15 @@ async function handleGenerateZipsBtn() {
             const zipData = await curResult.getData(textWriter);
             await writer.add(curResult.filename, new zip.BlobReader(zipData));
         }
+        let firstIncludedName = zipEntries[curStartIdx].filename;
+        let lastIncludedName = zipEntries[curEndIdx - 1].filename;
         curStartIdx += fullSubmissionCountPerTutor[tutorIdx];
+
+        // add name range to zip file
+        const nameBlob = new Blob(
+            ["From (including) \"" + extractNameFromFilename(firstIncludedName) + "\" to (including) \"" + extractNameFromFilename(lastIncludedName) + "\""],
+            { type: "text/plain" });
+        await writer.add("nameRange.txt", new zip.BlobReader(nameBlob));
 
         const zipWriterResult = await writer.close();
         saveFile(assignmentName + "_" + curTutor.name.replace(/\s/, "_") + ".zip", zipWriterResult);
@@ -314,6 +330,10 @@ async function handleGenerateZipsBtn() {
     if (curStartIdx != zipEntries.length) {
         alert("ERROR - tutor assignment failed!");
     }
+}
+
+function extractNameFromFilename(filename) {
+    return filename.substr(0, filename.indexOf("_"));
 }
 
 /* Randomize array in-place using Durstenfeld shuffle algorithm */
