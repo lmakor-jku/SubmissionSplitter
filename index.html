@@ -55,8 +55,15 @@
 
         <div id="thirdStep" class="d-none">
             <p class="h4">3. Generate Tutor zip files!</p>
-            <button id="tutorZipBtn" type="button" class="btn btn-primary">Generate & Download</button>
+            <button id="tutorZipBtn" type="button" class="btn btn-primary">Generate & Download<span
+                    id="generationSpinner" class="d-none ms-2 spinner-border spinner-border-sm" role="status"
+                    aria-hidden="true"></span>
         </div>
+        <div id="result" class="d-none">
+            <p class="h4">4. Resulting Tutor assignments!</p>
+            <textarea id="tutorAssignmentId" name="tutorAssignment" cols="80" rows="2"></textarea>
+        </div>
+
     </div>
 
 

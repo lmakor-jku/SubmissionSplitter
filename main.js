@@ -67,17 +67,6 @@ function startZipFileRead(fileObject) {
                 let extractedNumber = regexResult[3];
                 $('#assignmentName').val(extractedName + "_" + extractedNumber);
             }
-            /*
-            let regexResult = zipFileName.match(/.*(Übung\s[0-9]+)/);
-            if (regexResult.length != 2) {
-                regexResult = zipFileName.match(/.*(Exercise\s[0-9]+)/);
-            }
-            if (regexResult.length == 2) {
-                let extractedName = regexResult[1];
-                extractedName = extractedName.replace(/\s/, "_");
-                $('#assignmentName').val(extractedName);
-            }
-            */
 
             let zipFileDropBox = $('#zipFileDropBox');
             zipFileDropBox.addClass("d-none");
@@ -285,8 +274,11 @@ function enableStep3IfReady() {
 }
 
 async function handleGenerateZipsBtn() {
+    $('#tutorZipBtn').prop('disabled', true);
+    $('#generationSpinner').removeClass("d-none");
     let assignmentName = $('#assignmentName').val();
     if (!assignmentName || assignmentName.trim().length === 0) {
+        $('#generationSpinner').addClass("d-none");
         alert("ERROR: assignment name is invalid!")
         return;
     }
@@ -302,6 +294,7 @@ async function handleGenerateZipsBtn() {
     shuffleArray(tutorIndices);
 
     let curStartIdx = 0;
+    let fullTutorAssignments = "";
     for (let j = 0; j < tutors.length; j++) {
         let tutorIdx = tutorIndices[j];
         let curTutor = tutors[tutorIdx];
@@ -318,9 +311,14 @@ async function handleGenerateZipsBtn() {
         let lastIncludedName = zipEntries[curEndIdx - 1].filename;
         curStartIdx += fullSubmissionCountPerTutor[tutorIdx];
 
+        let tutorAssignment = "From (including) \"" + extractNameFromFilename(firstIncludedName) + "\" to (including) \"" + extractNameFromFilename(lastIncludedName) + "\"";
+        fullTutorAssignments += curTutor.name + ": " + tutorAssignment;
+        if (j < tutors.length - 1) {
+            fullTutorAssignments += '\n';
+        }
         // add name range to zip file
         const nameBlob = new Blob(
-            ["From (including) \"" + extractNameFromFilename(firstIncludedName) + "\" to (including) \"" + extractNameFromFilename(lastIncludedName) + "\""],
+            [tutorAssignment],
             { type: "text/plain" });
         await writer.add("nameRange.txt", new zip.BlobReader(nameBlob));
 
@@ -328,8 +326,18 @@ async function handleGenerateZipsBtn() {
         saveFile(assignmentName + "_" + curTutor.name.replace(/\s/, "_") + ".zip", zipWriterResult);
     }
     if (curStartIdx != zipEntries.length) {
+        $('#generationSpinner').addClass("d-none");
         alert("ERROR - tutor assignment failed!");
+        return;
     }
+    const fullTutorAssignmentsBlob = new Blob(
+        [fullTutorAssignments],
+        { type: "text/plain" });
+    saveFile(assignmentName + "_TutorAssignment.txt", fullTutorAssignmentsBlob);
+    $('#tutorAssignmentId').prop('rows', tutors.length);
+    $('#tutorAssignmentId').text(fullTutorAssignments);
+    $('#result').removeClass("d-none");
+    $('#generationSpinner').addClass("d-none");
 }
 
 function extractNameFromFilename(filename) {
