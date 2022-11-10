@@ -190,7 +190,8 @@ function handleCsvFileSelection(evt) {
         alert("Skipping " + csvFile.name.toUpperCase() + " because it is empty.");
         return;
     }
-    if (!csvFile.type.match('text/csv')) {
+    let fileName = csvFile.name;
+    if (!fileName.substr(fileName.lastIndexOf(".") + 1) == "csv") {
         alert("Skipping " + csvFile.name.toUpperCase() + " because it is not a csv file.");
         return;
     }
