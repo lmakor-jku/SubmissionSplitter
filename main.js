@@ -3,6 +3,7 @@ var loadedTutors = false;
 var loadedSubmissions = false;
 var zipEntries = null;
 var tutors = null;
+var tutorIndices = [];
 if (isIE()) {
     message = '<p>This website does not support Internet Explorer, please use a BETTER browser.</p>';
     document.querySelector('body').innerHTML = message;
@@ -21,6 +22,12 @@ if (isIE()) {
         document.getElementById('tutorFileDropBox').addEventListener('drop', handleCsvFileSelection, false);
     }
 }
+
+$(function () {
+    $("#randomizeTutors").click(function () {
+        randomizeAndDisplayTutors();
+    });
+});
 
 function isIE() {
     const ua = window.navigator.userAgent; //Check the userAgent property of the window.navigator object
@@ -140,10 +147,12 @@ function handleZipFileSelection(evt) {
 
     if (files.length == 0) {
         alert("No files selected.");
+        return;
     }
 
     if (files.length > 1) {
         alert("You must only select a single file.");
+        return;
     }
 
     var zipFile = files[0];
@@ -175,10 +184,12 @@ function handleCsvFileSelection(evt) {
 
     if (files.length == 0) {
         alert("No files selected.");
+        return;
     }
 
     if (files.length > 1) {
         alert("You must only select a single file.");
+        return;
     }
 
     var csvFile = files[0];
@@ -206,6 +217,21 @@ function startCsvFileRead(fileObject) {
 
     if (fileObject) {
         reader.readAsText(fileObject);
+    }
+}
+
+function randomizeAndDisplayTutors() {
+    let tutorTableBody = $('#tutorTableBody');
+    tutorTableBody.empty();
+
+    // randomize the assignment order - i.e. such that each tutor gets a different set of people each time
+    shuffleArray(tutorIndices);
+
+    for (let i = 0; i < tutors.length; i++) {
+        let tutorIdx = tutorIndices[i];
+        let curTutor = tutors[tutorIdx];
+        let tutorEntry = '<tr><th scope="row">' + (i + 1) + '</th><td><i class="bi bi-person-fill me-2"></i>' + curTutor.name + '</td><td>' + curTutor.weight + '</td></tr>';
+        tutorTableBody.append(tutorEntry);
     }
 }
 
@@ -242,17 +268,17 @@ function handleCsvContent(evt) {
         return;
     }
 
+    // Valid tutor file found
+    for (let tutorIdx = 0; tutorIdx < tutors.length; tutorIdx++) {
+        tutorIndices.push(tutorIdx);
+    }
+
+    // Randomizing tutors
+    randomizeAndDisplayTutors();
+
     let tutorFileDropBox = $('#tutorFileDropBox');
     tutorFileDropBox.addClass("d-none");
 
-    let tutorTableBody = $('#tutorTableBody');
-    tutorTableBody.empty();
-
-    for (let i = 0; i < tutors.length; i++) {
-        let curTutor = tutors[i];
-        let tutorEntry = '<tr><th scope="row">' + (i + 1) + '</th><td><i class="bi bi-person-fill me-2"></i>' + curTutor.name + '</td><td>' + curTutor.weight + '</td></tr>';
-        tutorTableBody.append(tutorEntry);
-    }
 
     let tutorTable = $('#tutorTable');
     tutorTable.removeClass("d-none");
@@ -263,6 +289,7 @@ function handleCsvContent(evt) {
     alertElem.removeClass("d-none");
 
     loadedTutors = true;
+    $("#randomizeTutors").removeAttr("disabled");
     enableStep3IfReady();
 }
 
@@ -285,14 +312,12 @@ async function handleGenerateZipsBtn() {
     }
 
     let fullSubmissionCountPerTutor = calcTutorAssignments();
-    console.log(fullSubmissionCountPerTutor);
-
-    // randomize the assignment order - i.e. such that each tutor gets a different set of people each time
-    let tutorIndices = [];
-    for (let tutorIdx = 0; tutorIdx < tutors.length; tutorIdx++) {
-        tutorIndices.push(tutorIdx);
+    for (let j = 0; j < tutors.length; j++) {
+        let tutorIdx = tutorIndices[j];
+        let curTutor = tutors[tutorIdx];
+        console.log(curTutor.name + " is assigned " + fullSubmissionCountPerTutor[tutorIdx] + " assignments");
+        fullSubmissionCountPerTutor
     }
-    shuffleArray(tutorIndices);
 
     let curStartIdx = 0;
     let fullTutorAssignments = "";
@@ -358,14 +383,24 @@ function shuffleArray(array) {
 function calcTutorAssignments() {
     let submissionCount = zipEntries.length;
 
+    // we create a copy that we can manipulate (sort)
+    // we also store the original index to create an array contianing the final values in the correct order
+    let tutorArrCopy = [];
+    for (let i = 0; i < tutors.length; i++) {
+        // create shallow copy
+        tutorCopy = Object.assign({}, tutors[i]);
+        tutorCopy.originalIdx = i;
+        tutorArrCopy.push(tutorCopy);
+    }
+
     // we later need to decide which tutor to assign one of the remaining submissions when the sortVal is equal
     // then we want to assign it to the tutor with fewer weight
     // hence we just sort the tutors by weight ascending
-    tutors.sort((a, b) => a.weight - b.weight);
+    tutorArrCopy.sort((a, b) => a.weight - b.weight);
 
     let assignPriority = [];
     let cumulatedWeight = 0;
-    for (const curTutor of tutors) {
+    for (const curTutor of tutorArrCopy) {
         cumulatedWeight += curTutor.weight;
         // the assign priority describes how much submissions a tutor has to correct per time unit
         assignPriority.push(1.0 / curTutor.weight);
@@ -376,7 +411,7 @@ function calcTutorAssignments() {
     let remainingSubmissionCount = submissionCount % cumulatedWeight;
 
     let additionalSubmissionsPerTutor = [];
-    for (let i = 0; i < tutors.length; i++) additionalSubmissionsPerTutor[i] = 0;
+    for (let i = 0; i < tutorArrCopy.length; i++) additionalSubmissionsPerTutor[i] = 0;
 
     // 2. step assign remaining submissions
     for (let i = 0; i < remainingSubmissionCount; i++) {
@@ -384,12 +419,13 @@ function calcTutorAssignments() {
         let curMinPrioIdx = assignPriority.indexOf(curMinPrio);
         additionalSubmissionsPerTutor[curMinPrioIdx]++;
         // update priority
-        assignPriority[curMinPrioIdx] = (additionalSubmissionsPerTutor[curMinPrioIdx] + 1) / tutors[curMinPrioIdx].weight;
+        assignPriority[curMinPrioIdx] = (additionalSubmissionsPerTutor[curMinPrioIdx] + 1) / tutorArrCopy[curMinPrioIdx].weight;
     }
 
     let fullSubmissionCountPerTutor = [];
-    for (let i = 0; i < tutors.length; i++) {
-        fullSubmissionCountPerTutor[i] = tutors[i].weight * submissionWeightMultiplier + additionalSubmissionsPerTutor[i];
+    for (let i = 0; i < tutorArrCopy.length; i++) {
+        let curTutor = tutorArrCopy[i];
+        fullSubmissionCountPerTutor[curTutor.originalIdx] = curTutor.weight * submissionWeightMultiplier + additionalSubmissionsPerTutor[i];
     }
     return fullSubmissionCountPerTutor;
 }
