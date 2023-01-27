@@ -60,9 +60,11 @@ function startZipFileRead(fileObject) {
                     continue;
                 }
                 let curLevel = getFileLevel(curEntry.filename);
-                if (curLevel == 1) {
-                    submissions.push(curEntry.filename);
-                }
+                // NOTE: it seems that allowing direct pdf uploads results in the sumbission files being directly stored in the 
+                // downloaded zip (i.e. no indiviudal assignsubmission subfolders per student)
+                //if (curLevel == 1) {
+                submissions.push(curEntry.filename);
+                //}
             }
             console.log("Found " + submissions.length + " submissions!");
 
@@ -316,7 +318,6 @@ async function handleGenerateZipsBtn() {
         let tutorIdx = tutorIndices[j];
         let curTutor = tutors[tutorIdx];
         console.log(curTutor.name + " is assigned " + fullSubmissionCountPerTutor[tutorIdx] + " assignments");
-        fullSubmissionCountPerTutor
     }
 
     let curStartIdx = 0;
