@@ -50,6 +50,7 @@ function startZipFileRead(fileObject) {
     const entries = reader.getEntries();
     entries.then(result => {
         if (result.length) {
+            result.sort((a, b) => a.filename.toLowerCase() > b.filename.toLowerCase() ? 1 : -1);
             zipEntries = result;
             console.log("Found " + entries.length + " entries in the zip!");
 
@@ -332,7 +333,8 @@ async function handleGenerateZipsBtn() {
             let curResult = zipEntries[i];
             const textWriter = new zip.BlobWriter();
             const zipData = await curResult.getData(textWriter);
-            await writer.add(curResult.filename, new zip.BlobReader(zipData));
+            const writtenZipInfo = await writer.add(curResult.filename, new zip.BlobReader(zipData));
+            console.log("Tutor " + j + ": zip entry " + i + " : cur entry: offset: " + writtenZipInfo.offset + " compressedSize: " + writtenZipInfo.compressedSize);
         }
         let firstIncludedName = zipEntries[curStartIdx].filename;
         let lastIncludedName = zipEntries[curEndIdx - 1].filename;
